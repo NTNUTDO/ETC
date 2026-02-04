@@ -2,18 +2,13 @@ var filename = new Date().toLocaleDateString();
 document.getElementById("filename").value = filename;
 
 function showResult() {
-    if (masterRunning) {
-        if (!confirm('Are you sure? Stop timer and create data.')) return;
-        ticker.stop();
-        stopAll();
-    }
     // check if canvas exists and if not, create it
     if (data.length == 0) {
         alert('There is no data!');
         return;
     }
     createTimeline(0);
-    createTimeline(1);
+    createTimeline(2);
     createTable();
 }
 
@@ -23,9 +18,9 @@ function saveTimeline(tlID) {
         alert('There is no data!');
         return;
     }
-    var difID = ["P1P3", "P2P4"];
-    if (!document.getElementById("canvasTimeline")) {
-        for (var i = 0; i < 2; i++) {
+    var difID = ["P1P2", "", "P3P4"];
+    if (!document.getElementById("canvasTimeline" + difID[i])) {
+        for (var i = 0; i <= 2; i += 2) {
             var divTimeline = document.getElementById("divTimeline" + difID[i]);
             while (divTimeline.lastChild) divTimeline.removeChild(divTimeline.firstChild);
             createTimeline(i);
@@ -33,7 +28,7 @@ function saveTimeline(tlID) {
     }
 
     var link = document.createElement("a");
-    link.setAttribute('download', document.getElementById("filename").value + "_" + difID[tlID] + "_timeline");
+    link.setAttribute('download', "ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_" + difID[tlID] + "_timeline");
     link.href = document.getElementById("canvasTimeline" + difID[tlID]).toDataURL("image/png");
     document.body.appendChild(link);
 
@@ -42,11 +37,12 @@ function saveTimeline(tlID) {
 }
 
 function getCsvdata() {
+    // check if canvas exists and if not, create it
     if (data.length == 0) {
         alert('There is no data!');
         return;
     }
-    var csvContent = "紀錄時間-起,紀錄時間-迄,行為者,被行為者,行為,影響\n";
+    var csvContent = "紀錄時間-起,紀錄時間-迄,行為者,行為,被行為者,反應\n";
 
     data.forEach(function (dt) {
         csvContent += timeFormating(dt[0]) + ",";
@@ -61,9 +57,50 @@ function getCsvdata() {
         }
     });
 
-    filename = document.getElementById("filename").value + '.csv';
+    filename = "ETC_" + document.getElementById("filename").value + '_Record.csv';
     download(csvContent, filename, 'text/csv;encoding:utf-8');
 }
+
+function getXlsxData() {
+    if (data.length == 0) {
+        alert('There is no data!');
+        return;
+    }
+
+    // Create workbook and worksheet
+    var wb = XLSX.utils.book_new();
+
+    // Prepare data array with headers
+    var wsData = [
+        ["紀錄時間-起", "紀錄時間-迄", "行為者", "被行為者", "行為", "影響"]
+    ];
+
+    // Add data rows
+    data.forEach(function (dt) {
+        var row = [
+            timeFormating(dt[0]),
+            timeFormating(dt[1]),
+            pgData[0][dt[2]],
+            pgData[1][dt[3]],
+            pgData[2][dt[4]],
+            pgData[3][dt[5]] || "" // Handle undefined values
+        ];
+        wsData.push(row);
+    });
+
+    // Create worksheet from array
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+    // Generate filename
+    filename = "ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + '_record.xlsx';
+
+    // Write file
+    XLSX.writeFile(wb, filename);
+}
+
 
 function download(content, fileName, mimeType) {
     var a = document.createElement('a');
@@ -91,7 +128,7 @@ function createTable() {
     while (tableDiv.lastChild) {
         tableDiv.removeChild(tableDiv.firstChild);
     }
-    var tbhead = ["行為者", "被行為者", "行為", "影響"];
+    var tbhead = ["行為者", "行為", "被行為者", "反應"];
     tbhead.forEach(function (hd, i) {
         var subDiv = document.createElement("div");
         var table = document.createElement('table');
@@ -125,7 +162,7 @@ function createTable() {
         for (var j = 0; j < pgData[i].length; j++) {
             pgDataAll += pgDataCal[i][j];
         }
-        console.log(pgDataAll);
+        //console.log(pgDataAll);
 
         for (var j = 0; j < pgData[i].length; j++) {
             var txt_h = document.createTextNode(pgData[i][j]);
@@ -172,32 +209,30 @@ function createTable() {
     })
 }
 
-function downloadTables(text, filename) {
+function downloadTables() {
     var divTB = document.getElementById("divTable");
     if (divTB.innerHTML.length == 0) {
         createTable();
     }
-    text = document.getElementById("divTable").outerHTML;
+    var text = document.getElementById("divTable").outerHTML;
     text = "<!DOCTYPE html><html xml:lang=\"en\" lang=\"en\"><head><meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\" /><meta name=\"viewport\" content=\"width=device-width\"><meta name=\"generator\" content=\"Geany 1.32\" /><!-- Bootstrap CSS --><link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css\" rel=\"stylesheet\"integrity=\"sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU\" crossorigin=\"anonymous\"></head><body>" + text + "</body></html";
     var blob = new Blob([text], { type: "'text/html" });
     var url = window.URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_statistics_table.html";
+    a.download = "ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_statistics_table.html";
     a.click();
     a.remove();
 }
 
-
 function createTimeline(tlID) {
     var timelineColors = [["#CACF85", "#8CBA80", "#658E9C", "#566E8A", "#4D5382", "#514663"], ["#96BBBB", "#618985", "#414535", "#9A9479", "#F2E3BC", "#C19875"]];
-    var ob = ["行為者", "被行為者"];
-    var act = ["行為", "影響"];
+    var ob = ["行為者", "行為", "被行為者", "反應"];
     if (tlID == 0) {
-        var difID = "P1P3"
+        var difID = "P1P2"
         var barcolors = timelineColors[0];
-    } else if (tlID == 1) {
-        var difID = "P2P4";
+    } else if (tlID == 2) {
+        var difID = "P3P4";
         var barcolors = timelineColors[1];
     } else {
         alert("Wrong timeline ID, please check.");
@@ -217,7 +252,7 @@ function createTimeline(tlID) {
     plotWidth = Math.ceil(totalTime / 60) * 30; //30 pixel per min(60sec)
 
     var iconWidth = 0;
-    pgData[tlID + 2].forEach(bhn => {
+    pgData[tlID + 1].forEach(bhn => {
         var iconLength = ctx.measureText(":" + bhn).width;
         if (iconLength + 5 + 16 > iconWidth) {
             iconWidth = iconLength + 5 + 16;
@@ -234,7 +269,7 @@ function createTimeline(tlID) {
             textLength = Math.round(labelLength);
         }
     });
-    var minCanvasWidth = 50 + ctx.measureText(document.getElementById("filename").value + "_" + difID + "_timeline").width;
+    var minCanvasWidth = 50 + ctx.measureText("ETC_" + document.getElementById("filename").value + "_" + difID + "_timeline").width;
     var canvasWidth = plotWidth + textLength + 100;	// add room for totals and then some
     canvas.width = canvasWidth > minCanvasWidth ? canvasWidth : minCanvasWidth;
 
@@ -243,7 +278,7 @@ function createTimeline(tlID) {
     var topMargin = 45;
     var plotHeight = (height + 10) * pgData[tlID].length;
     var iconHeight = 24;
-    var canvasHeight = plotHeight + topMargin + 30 + iconHeight * pgData[tlID + 2].length;	// add margin and space for ticks
+    var canvasHeight = plotHeight + topMargin + 30 + iconHeight * pgData[tlID + 1].length;	// add margin and space for ticks
     canvas.height = canvasHeight;
 
     var plotStart = textLength + 50; // where the plot starts (x), labels to the left
@@ -324,15 +359,13 @@ function createTimeline(tlID) {
     data.forEach(function (roundDT, i) {
         start = Math.round((roundDT[0] - startTime) / 1000);
         len = Math.round((roundDT[1] - roundDT[0]) / 1000);
-        if (roundDT[tlID + 4] != undefined) {
-            ctx.fillStyle = barcolors[roundDT[tlID + 4]];
-            if (len > 13) {
-                ctx.fillRect(plotStart + start / 2, pos[roundDT[tlID + 2]], len / 2, height);
-            } else {
-                ctx.beginPath();
-                ctx.arc(plotStart + start / 2, pos[roundDT[tlID + 2]] + height / 2, 5, 0, 2 * Math.PI);
-                ctx.fill();
-            }
+        ctx.fillStyle = barcolors[roundDT[tlID + 3]];
+        if (len > 13) {
+            ctx.fillRect(plotStart + start / 2, pos[roundDT[tlID + 2]], len / 2, height);
+        } else {
+            ctx.beginPath();
+            ctx.arc(plotStart + start / 2, pos[roundDT[tlID + 2]] + height / 2, 5, 0, 2 * Math.PI);
+            ctx.fill();
         }
     });
 
@@ -340,7 +373,7 @@ function createTimeline(tlID) {
     var iconX = plotStart + 5;
     var iconY = topMargin + plotHeight + 30;
 
-    pgData[tlID + 2].forEach(function (pgd, i) {
+    pgData[tlID + 1].forEach(function (pgd, i) {
 
         ctx.fillStyle = barcolors[i];
         ctx.fillRect(iconX, iconY, 16, 16);
@@ -359,7 +392,7 @@ function createTimeline(tlID) {
     ctx.drawImage(imgObject, canvas.width - 50, 0, 50, 18);
 
     //file name mark
-    var filenametxt = document.getElementById("filename").value + "_" + difID + "_timeline";
+    var filenametxt = "ETC_" + document.getElementById("filename").value + "_" + difID + "_timeline";
     ctx.fillStyle = "black";
     ctx.fillText(filenametxt, 0, 10);
 
@@ -377,131 +410,56 @@ function downloadZipFile() {
     /*table*/
     var text = document.getElementById("divTable").outerHTML;
     text = "<!DOCTYPE html><html xml:lang=\"en\" lang=\"en\"><head><meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\" /><meta name=\"viewport\" content=\"width=device-width\"><meta name=\"generator\" content=\"Geany 1.32\" /><!-- Bootstrap CSS --><link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css\" rel=\"stylesheet\"integrity=\"sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU\" crossorigin=\"anonymous\"></head><body>" + text + "</body></html";
-    zip.file(document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_statistics_table.html", text);
+    zip.file("ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_statistics_table.html", text);
 
 
     //Timeline image
-    difID = ["P1P3", "P2P4"];
-    for (var i = 0; i < 2; i++) {
+    difID = ["P1P2", " ", "P3P4"];
+    for (var i = 0; i < 3; i += 2) {
         var divTimeline = document.getElementById("canvasTimeline" + difID[i]);
         if (!divTimeline)
             createTimeline(i);
         var img = document.getElementById("canvasTimeline" + difID[i]).toDataURL("image/png");
         img = img.split('base64,')[1];
-        zip.file((document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_" + difID[i] + "_timeline.png"), img, { base64: true, createFolders: false });
-        console.log(zip.file);
+        zip.file(("ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_" + difID[i] + "_timeline.png"), img, { base64: true, createFolders: false });
     }
 
+    // XLSX file instead of CSV
+    var wb = XLSX.utils.book_new();
 
-    //CSV file
-    var csvContent = "紀錄時間-起,紀錄時間-迄,行為者,被行為者,行為,影響\n";
-    //for (i = 0; i < constOBnum; i++)content[i] = (i + 1) + ",";//Serial number
+    // Prepare data array with headers
+    var wsData = [
+        ["紀錄時間-起", "紀錄時間-迄", "行為者", "被行為者", "行為", "影響"]
+    ];
 
+    // Add data rows
     data.forEach(function (dt) {
-        csvContent += timeFormating(dt[0]) + ",";
-        csvContent += timeFormating(dt[1]) + ",";
-        csvContent += pgData[0][dt[2]] + ",";
-        csvContent += pgData[1][dt[3]] + ",";
-        csvContent += pgData[2][dt[4]] + ",";
-        if (pgData[3][dt[5]] == undefined) {
-            csvContent += "\n";
-        } else {
-            csvContent += pgData[3][dt[5]] + "\n";
-        }
+        var row = [
+            timeFormating(dt[0]),
+            timeFormating(dt[1]),
+            pgData[0][dt[2]],
+            pgData[1][dt[3]],
+            pgData[2][dt[4]],
+            pgData[3][dt[5]] || "" // Handle undefined values
+        ];
+        wsData.push(row);
     });
 
-    zip.file(document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + '.csv', "\uFEFF" + csvContent, { createFolders: false })
+    // Create worksheet from array
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
 
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
 
+    // Generate XLSX file as binary
+    var xlsxData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+    // Add XLSX file to zip
+    zip.file("ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + '_record.xlsx', xlsxData, { createFolders: false });
 
     zip.generateAsync({ type: "blob" })
         .then(function (content) {
             // see FileSaver.js
-            saveAs(content, document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_all_files.zip");
+            saveAs(content, "ETC_" + document.getElementById("filename").value.replace(/([^0-9A-z\u4e00-\u9fa5]|[\^\_])/g, '_') + "_all_files.zip");
         });
-}
-
-function iconPattern(patSelect, colorSelect, edge) {
-    var color = ["#338CD5", "#7F8B92", "#DAE2D5", "#66FFF0", "#E15666", "#FFC471", "white"];
-    var canvas = document.createElement("canvas");
-    var ctx = canvas.getContext("2d");
-    canvas.width = edge;
-    canvas.height = edge;
-    ctx.lineWidth = 3 / 25 * edge;
-    ctx.fillStyle = color[colorSelect];
-    ctx.fillRect(0, 0, edge, edge);
-    ctx.fillStyle = 'black';
-
-    switch (patSelect) {
-        case 0:// 斜線/
-            ctx.beginPath();
-            ctx.moveTo(-1, 1);
-            ctx.lineTo(1, -1);
-            ctx.moveTo(edge / 2 + 1, -1);
-            ctx.lineTo(-1, edge / 2 + 1);
-            ctx.moveTo(edge + 1, -1);
-            ctx.lineTo(-1, edge + 1);
-            ctx.moveTo(edge + 1, edge / 2 - 1);
-            ctx.lineTo(edge / 2 - 1, edge + 1);
-            ctx.moveTo(edge - 1, edge + 1);
-            ctx.lineTo(edge + 1, edge - 1);
-            ctx.stroke();
-            break;
-        case 1:// 斜線\
-            ctx.beginPath();
-            ctx.moveTo(edge - 1, -1);
-            ctx.lineTo(edge + 1, 1);
-            ctx.moveTo(edge / 2 - 1, -1);
-            ctx.lineTo(edge + 1, edge / 2 + 1);
-            ctx.moveTo(-1, -1);
-            ctx.lineTo(edge + 1, edge + 1);
-            ctx.moveTo(-1, edge / 2 - 1);
-            ctx.lineTo(edge / 2 + 1, edge + 1);
-            ctx.moveTo(-1, edge - 1);
-            ctx.lineTo(1, edge + 1);
-            ctx.stroke();
-            break;
-        case 2://直線|
-            ctx.beginPath();
-            ctx.moveTo(0, -1);
-            ctx.lineTo(0, edge + 1);
-            ctx.moveTo(edge / 2, -1);
-            ctx.lineTo(edge / 2, edge + 1);
-            ctx.moveTo(edge, -1);
-            ctx.lineTo(edge, edge + 1);
-            ctx.stroke();
-            break;
-        case 3://橫線－
-            ctx.beginPath();
-            ctx.moveTo(-1, 0);
-            ctx.lineTo(edge + 1, 0);
-            ctx.moveTo(-1, edge / 2);
-            ctx.lineTo(edge + 1, edge / 2);
-            ctx.moveTo(-1, edge);
-            ctx.lineTo(edge + 1, edge);
-            ctx.stroke();
-            break;
-        case 4://圓形○
-            ctx.beginPath();
-            ctx.arc(edge / 2, edge / 2, edge / 4, 0, 2 * Math.PI);
-            ctx.lineWidth = 2 / 25 * edge;
-            ctx.stroke();
-            break;
-        case 5://三角形△
-            ctx.beginPath();
-            ctx.moveTo(edge / 2, edge * 0.284);
-            ctx.lineTo(edge / 4, edge * 0.717);
-            ctx.lineTo(edge / 4 * 3, edge * 0.717);
-            ctx.closePath();
-            ctx.lineWidth = 2 / 25 * edge;
-            ctx.stroke();
-            break;
-        case 6://空白
-            ctx.fillStyle = color[colorSelect];
-            ctx.beginPath();
-            ctx.fillRect(0, 0, edge, edge);
-            break;
-    }
-
-    return canvas;
 }

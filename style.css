@@ -7,6 +7,15 @@
     cursor: pointer;
     font-size: 24px;
 }
+.exchangeButton {
+    position: absolute;
+    top: 40px;
+    right: 8px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+}
 /* The Modal (background) */
 .mymodal {
     display: none;
@@ -125,6 +134,8 @@ label[for="p-3"], label[for^="3-"] {
     }
 }
 
-#info .btn:not([class*="outline"]){
+#mb_info_div .btn-warning,
+#dt_setting_div_1 .btn-warning,
+#dt_info_div_1 .btn-warning{
     color:white;
 }
